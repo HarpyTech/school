@@ -52,8 +52,11 @@ public class User extends BaseEntity {
     @Column(name = "profile_picture", length = 500)
     private String profilePicture;
 
+    @Column(name = "school_id", length = 36)
+    private String schoolId;  // null for ADMIN users; set for all tenant-scoped users
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "school_id")
+    @JoinColumn(name = "school_id", insertable = false, updatable = false)
     private School school;  // null for ADMIN users; set for all tenant-scoped users
 
     @Enumerated(EnumType.STRING)

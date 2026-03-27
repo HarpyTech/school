@@ -96,6 +96,14 @@ app:
     access-token-expiration-ms: 900000        # 15 minutes
     refresh-token-expiration-ms: 604800000    # 7 days
     issuer: school-management-system
+  bootstrap:
+    root-user:
+      enabled: ${BOOTSTRAP_ROOT_USER_ENABLED:true}
+      username: ${BOOTSTRAP_ROOT_USER_USERNAME:root}
+      email: ${BOOTSTRAP_ROOT_USER_EMAIL:root@school.local}
+      password: ${BOOTSTRAP_ROOT_USER_PASSWORD:RootAdmin@123}
+      first-name: ${BOOTSTRAP_ROOT_USER_FIRST_NAME:Root}
+      last-name: ${BOOTSTRAP_ROOT_USER_LAST_NAME:Administrator}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200}
     allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS

@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 public interface UserMapper {
 
     @Mapping(target = "roles", expression = "java(mapRoles(user.getRoles()))")
+    @Mapping(target = "schoolId", source = "schoolId")
     @Mapping(target = "phoneNumber", source = "phoneNumber")
     UserResponse toResponse(User user);
 
