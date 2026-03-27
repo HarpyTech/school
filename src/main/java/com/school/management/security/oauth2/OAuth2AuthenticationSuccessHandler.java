@@ -2,7 +2,7 @@ package com.school.management.security.oauth2;
 
 import com.school.management.security.UserPrincipal;
 import com.school.management.security.jwt.JwtTokenProvider;
-import com.school.management.user.application.AuthService;
+import com.school.management.user.application.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

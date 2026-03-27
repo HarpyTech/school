@@ -45,7 +45,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .map(existing -> updateOAuth2User(existing, userInfo))
                 .orElseGet(() -> registerOAuth2User(userInfo));
 
-        return UserPrincipal.create(user);
+        return UserPrincipal.create(user, oAuth2User.getAttributes());
     }
 
     private OAuth2UserInfo extractUserInfo(String registrationId, java.util.Map<String, Object> attributes) {

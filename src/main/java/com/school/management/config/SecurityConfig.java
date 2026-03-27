@@ -1,5 +1,6 @@
 package com.school.management.config;
 
+import com.school.management.common.filter.RateLimitingFilter;
 import com.school.management.security.CustomUserDetailsService;
 import com.school.management.security.jwt.JwtAuthenticationEntryPoint;
 import com.school.management.security.jwt.JwtAuthenticationFilter;
@@ -36,6 +37,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final RateLimitingFilter rateLimitingFilter;
     private final CustomUserDetailsService customUserDetailsService;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
@@ -71,6 +73,7 @@ public class SecurityConfig {
                     .userInfoEndpoint(userInfo ->
                             userInfo.userService(customOAuth2UserService))
                     .successHandler(oAuth2AuthenticationSuccessHandler))
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

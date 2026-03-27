@@ -159,10 +159,8 @@ public class AuthService {
 
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
-        User user = userRepository.findAll().stream()
-                .filter(u -> request.token().equals(u.getPasswordResetToken()))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException("Invalid reset token"));
+        User user = userRepository.findByPasswordResetTokenAndDeletedFalse(request.token())
+            .orElseThrow(() -> new BusinessException("Invalid reset token"));
 
         if (user.getPasswordResetTokenExpiry() == null || LocalDateTime.now().isAfter(user.getPasswordResetTokenExpiry())) {
             throw new BusinessException("Reset token has expired");
