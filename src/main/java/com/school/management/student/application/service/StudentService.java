@@ -2,7 +2,6 @@ package com.school.management.student.application.service;
 
 import com.school.management.common.constants.AppConstants;
 import com.school.management.common.entity.Address;
-import com.school.management.common.event.EventPublisher;
 import com.school.management.common.exception.BusinessException;
 import com.school.management.common.exception.ResourceNotFoundException;
 import com.school.management.common.response.PagedResponse;
@@ -13,12 +12,9 @@ import com.school.management.student.application.mapper.StudentMapper;
 import com.school.management.student.domain.ParentGuardian;
 import com.school.management.student.domain.Student;
 import com.school.management.student.domain.StudentStatus;
-import com.school.management.student.domain.event.StudentAdmittedEvent;
 import com.school.management.student.infrastructure.ParentGuardianRepository;
 import com.school.management.student.infrastructure.StudentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -34,10 +30,8 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final ParentGuardianRepository parentRepository;
     private final StudentMapper studentMapper;
-    private final EventPublisher eventPublisher;
 
     @Transactional
-    @CacheEvict(value = "students", allEntries = true)
     public StudentResponse admit(CreateStudentRequest request) {
         Student student = new Student();
         student.setSchoolId(request.schoolId());
@@ -64,23 +58,10 @@ public class StudentService {
 
         Student saved = studentRepository.save(student);
 
-        eventPublisher.publish(AppConstants.TOPIC_STUDENT_ADMITTED, saved.getId(),
-                StudentAdmittedEvent.builder()
-                        .eventId(UUID.randomUUID().toString())
-                        .eventType("STUDENT_ADMITTED")
-                        .occurredOn(LocalDateTime.now())
-                        .studentId(saved.getId())
-                        .schoolId(saved.getSchoolId())
-                        .admissionNumber(saved.getAdmissionNumber())
-                        .fullName(saved.getFullName())
-                        .grade(saved.getCurrentGrade())
-                        .build());
-
         return studentMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "students", key = "#id")
     public StudentResponse getById(String id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
@@ -100,7 +81,6 @@ public class StudentService {
     }
 
     @Transactional
-    @CacheEvict(value = "students", key = "#id")
     public StudentResponse promote(String id, PromoteStudentRequest request) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
@@ -115,18 +95,10 @@ public class StudentService {
 
         Student saved = studentRepository.save(student);
 
-        eventPublisher.publish(AppConstants.TOPIC_STUDENT_PROMOTED, saved.getId(), java.util.Map.of(
-                "studentId", saved.getId(),
-                "schoolId", saved.getSchoolId(),
-                "grade", saved.getCurrentGrade(),
-                "section", saved.getSection()
-        ));
-
         return studentMapper.toResponse(saved);
     }
 
     @Transactional
-    @CacheEvict(value = "students", key = "#id")
     public StudentResponse transfer(String id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
@@ -136,7 +108,6 @@ public class StudentService {
     }
 
     @Transactional
-    @CacheEvict(value = "students", key = "#id")
     public StudentResponse dropOut(String id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));

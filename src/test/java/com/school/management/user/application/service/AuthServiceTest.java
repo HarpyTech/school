@@ -1,6 +1,5 @@
 package com.school.management.user.application.service;
 
-import com.school.management.common.event.EventPublisher;
 import com.school.management.common.exception.DuplicateResourceException;
 import com.school.management.security.jwt.JwtTokenProvider;
 import com.school.management.user.application.dto.request.RegisterRequest;
@@ -35,7 +34,6 @@ class AuthServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private AuthenticationManager authenticationManager;
     @Mock private JwtTokenProvider tokenProvider;
-    @Mock private EventPublisher eventPublisher;
 
     @InjectMocks
     private AuthService authService;

@@ -46,7 +46,7 @@ public class OpenApiConfig {
                         - JWT + OAuth2 Authentication
                         - Role-based access control (ADMIN, SCHOOL_ADMIN, TEACHER, STUDENT, PARENT)
                         - Full student lifecycle management
-                        - Event-driven via Apache Kafka
+                        - Rate limiting and distributed tracing
                         """)
                 .version("v1.0.0")
                 .contact(new Contact()

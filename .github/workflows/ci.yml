@@ -28,12 +28,6 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
 
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,14 +54,12 @@ jobs:
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/school_test
           SPRING_DATASOURCE_PASSWORD: testpassword
-          SPRING_DATA_REDIS_HOST: localhost
 
       - name: Run Integration Tests
         run: mvn verify -B -DskipUnitTests
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/school_test
           SPRING_DATASOURCE_PASSWORD: testpassword
-          SPRING_DATA_REDIS_HOST: localhost
 
       - name: Generate Test Report
         uses: dorny/test-reporter@v1
