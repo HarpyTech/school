@@ -26,7 +26,7 @@ services:
         condition: service_healthy
     networks:
       - school-network
-    restart: unless-stopped
+    # restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s

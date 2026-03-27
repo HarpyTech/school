@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -53,6 +55,7 @@ public class User extends BaseEntity {
     private String schoolId;  // null for ADMIN users; set for all tenant-scoped users
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "status", length = 30, nullable = false)
     private UserStatus status = UserStatus.PENDING_VERIFICATION;
 
@@ -84,6 +87,13 @@ public class User extends BaseEntity {
 
     public void addRole(Role role) {
         this.roles.add(role);
+    }
+
+    public boolean hasRole(RoleName roleName) {
+        if (roleName == null || roles == null || roles.isEmpty()) {
+            return false;
+        }
+        return roles.stream().anyMatch(role -> role != null && role.getName() == roleName);
     }
 
     public String getFullName() {

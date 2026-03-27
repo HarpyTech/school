@@ -73,8 +73,8 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID:}
-            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            client-id: ${GOOGLE_CLIENT_ID:local-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:local-google-client-secret}
             scope: openid,profile,email
             redirect-uri: "{baseUrl}/oauth2/callback/{registrationId}"
 

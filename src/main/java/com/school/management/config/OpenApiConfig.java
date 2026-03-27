@@ -26,10 +26,10 @@ public class OpenApiConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(apiInfo())
-                .servers(List.of(
-                        new Server().url("http://localhost:" + serverPort).description("Local Development"),
-                        new Server().url("https://api.school.com").description("Production")
-                ))
+                // .servers(List.of(
+                //         new Server().url("http://localhost:" + serverPort).description("Local Development"),
+                //         new Server().url("https://api.school.com").description("Production")
+                // ))
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components()
                         .addSecuritySchemes(SECURITY_SCHEME_NAME, jwtSecurityScheme()));
