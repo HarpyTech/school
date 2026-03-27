@@ -28,7 +28,8 @@ public class OpenApiConfig {
                 .info(apiInfo())
                 .servers(List.of(
                         new Server().url("http://localhost:" + serverPort).description("Local Development"),
-                        new Server().url("https://api.school.com").description("Production")
+                        new Server().url("https://api.school.com").description("Production"),
+                        new Server().url("https://effective-capybara-7jxvw9x7rwhx6gp-8080.app.github.dev/").description("Development (GitHub Codespaces)")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components()
@@ -46,7 +47,7 @@ public class OpenApiConfig {
                         - JWT + OAuth2 Authentication
                         - Role-based access control (ADMIN, SCHOOL_ADMIN, TEACHER, STUDENT, PARENT)
                         - Full student lifecycle management
-                        - Event-driven via Apache Kafka
+                        - Rate limiting and distributed tracing
                         """)
                 .version("v1.0.0")
                 .contact(new Contact()

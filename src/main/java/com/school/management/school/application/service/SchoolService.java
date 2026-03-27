@@ -10,8 +10,6 @@ import com.school.management.school.application.mapper.SchoolMapper;
 import com.school.management.school.domain.School;
 import com.school.management.school.infrastructure.SchoolRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -25,7 +23,6 @@ public class SchoolService {
     private final SchoolMapper schoolMapper;
 
     @Transactional
-    @CacheEvict(value = "schools", allEntries = true)
     public SchoolResponse create(CreateSchoolRequest request) {
         if (schoolRepository.existsByCode(request.code())) {
             throw new DuplicateResourceException("School", "code", request.code());
@@ -48,7 +45,6 @@ public class SchoolService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "schools", key = "#id")
     public SchoolResponse getById(String id) {
         School school = schoolRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("School", "id", id));
@@ -63,7 +59,6 @@ public class SchoolService {
     }
 
     @Transactional
-    @CacheEvict(value = "schools", key = "#id")
     public void deactivate(String id) {
         School school = schoolRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("School", "id", id));

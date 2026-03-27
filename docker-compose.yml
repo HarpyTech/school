@@ -1,5 +1,5 @@
 # School Management System - Docker Compose
-# Includes: MySQL, Redis, Kafka, Zookeeper, Elasticsearch
+# Includes: MySQL, Elasticsearch, Prometheus, Grafana, Kibana
 
 version: '3.8'
 
@@ -19,21 +19,14 @@ services:
       DB_PORT: 3306
       DB_NAME: school_management
       DB_PASSWORD: rootpassword
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       ELASTICSEARCH_URI: http://elasticsearch:9200
       JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     depends_on:
       mysql:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_started
     networks:
       - school-network
-    restart: unless-stopped
+    # restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -67,80 +60,6 @@ services:
     command: --default-authentication-plugin=mysql_native_password
               --character-set-server=utf8mb4
               --collation-server=utf8mb4_unicode_ci
-
-  # ─── Redis ─────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: school-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
-    networks:
-      - school-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ─── Zookeeper ─────────────────────────────────────────────
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: school-zookeeper
-    ports:
-      - "2181:2181"
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    volumes:
-      - zookeeper_data:/var/lib/zookeeper/data
-      - zookeeper_logs:/var/lib/zookeeper/log
-    networks:
-      - school-network
-    restart: unless-stopped
-
-  # ─── Kafka ─────────────────────────────────────────────────
-  kafka:
-    image: confluentinc/cp-kafka:7.5.0
-    container_name: school-kafka
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-      KAFKA_NUM_PARTITIONS: 3
-      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
-    volumes:
-      - kafka_data:/var/lib/kafka/data
-    depends_on:
-      - zookeeper
-    networks:
-      - school-network
-    restart: unless-stopped
-
-  # ─── Kafka UI ──────────────────────────────────────────────
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: school-kafka-ui
-    ports:
-      - "8090:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-    depends_on:
-      - kafka
-    networks:
-      - school-network
 
   # ─── Elasticsearch ─────────────────────────────────────────
   elasticsearch:
@@ -212,10 +131,6 @@ services:
 
 volumes:
   mysql_data:
-  redis_data:
-  zookeeper_data:
-  zookeeper_logs:
-  kafka_data:
   elasticsearch_data:
   prometheus_data:
   grafana_data:

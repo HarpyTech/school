@@ -1,7 +1,6 @@
 package com.school.management.user.application.service;
 
 import com.school.management.common.constants.AppConstants;
-import com.school.management.common.event.EventPublisher;
 import com.school.management.common.exception.BusinessException;
 import com.school.management.common.exception.DuplicateResourceException;
 import com.school.management.common.exception.ResourceNotFoundException;
@@ -13,7 +12,6 @@ import com.school.management.user.application.dto.response.TokenResponse;
 import com.school.management.user.application.dto.response.UserResponse;
 import com.school.management.user.application.mapper.UserMapper;
 import com.school.management.user.domain.*;
-import com.school.management.user.domain.event.UserRegisteredEvent;
 import com.school.management.user.infrastructure.RefreshTokenRepository;
 import com.school.management.user.infrastructure.RoleRepository;
 import com.school.management.user.infrastructure.UserRepository;
@@ -42,7 +40,6 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
-    private final EventPublisher eventPublisher;
 
     @Transactional
     public UserResponse register(RegisterRequest request) {
@@ -74,18 +71,6 @@ public class AuthService {
 
         user.setRoles(roles);
         User saved = userRepository.save(user);
-
-        eventPublisher.publish(AppConstants.TOPIC_USER_REGISTERED, saved.getId(),
-                UserRegisteredEvent.builder()
-                        .eventId(UUID.randomUUID().toString())
-                        .eventType("USER_REGISTERED")
-                        .occurredOn(LocalDateTime.now())
-                        .userId(saved.getId())
-                        .schoolId(saved.getSchoolId())
-                        .email(saved.getEmail())
-                        .username(saved.getUsername())
-                        .roles(saved.getRoles().stream().map(r -> r.getName().name()).collect(Collectors.toSet()))
-                        .build());
 
         return userMapper.toResponse(saved);
     }
@@ -147,14 +132,6 @@ public class AuthService {
         user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(2));
 
         userRepository.save(user);
-
-        // Publish notification event; template service can send email asynchronously.
-        eventPublisher.publish(AppConstants.TOPIC_NOTIFICATION_SEND, user.getId(), java.util.Map.of(
-                "type", "PASSWORD_RESET",
-                "email", user.getEmail(),
-                "token", token,
-                "userId", user.getId()
-        ));
     }
 
     @Transactional

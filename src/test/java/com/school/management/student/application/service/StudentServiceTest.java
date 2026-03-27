@@ -1,6 +1,5 @@
 package com.school.management.student.application.service;
 
-import com.school.management.common.event.EventPublisher;
 import com.school.management.common.exception.BusinessException;
 import com.school.management.student.application.dto.request.PromoteStudentRequest;
 import com.school.management.student.application.mapper.StudentMapper;
@@ -25,7 +24,6 @@ class StudentServiceTest {
     @Mock private StudentRepository studentRepository;
     @Mock private ParentGuardianRepository parentGuardianRepository;
     @Mock private StudentMapper studentMapper;
-    @Mock private EventPublisher eventPublisher;
 
     @InjectMocks
     private StudentService studentService;
