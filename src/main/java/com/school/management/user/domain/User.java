@@ -1,6 +1,7 @@
 package com.school.management.user.domain;
 
 import com.school.management.common.entity.BaseEntity;
+import com.school.management.school.domain.School;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -53,6 +54,10 @@ public class User extends BaseEntity {
 
     @Column(name = "school_id", length = 36)
     private String schoolId;  // null for ADMIN users; set for all tenant-scoped users
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id", insertable = false, updatable = false)
+    private School school;  // null for ADMIN users; set for all tenant-scoped users
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
