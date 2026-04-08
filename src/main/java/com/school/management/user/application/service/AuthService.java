@@ -16,6 +16,7 @@ import com.school.management.user.infrastructure.RefreshTokenRepository;
 import com.school.management.user.infrastructure.RoleRepository;
 import com.school.management.user.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -41,6 +42,9 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
 
+    @Value("${app.features.email-enabled:true}")
+    private boolean emailFeatureEnabled;
+
     @Transactional
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.username())) {
@@ -58,7 +62,13 @@ public class AuthService {
         user.setLastName(request.lastName());
         user.setPhoneNumber(request.phone());
         user.setSchoolId(request.schoolId());
-        user.setStatus(UserStatus.PENDING_VERIFICATION);
+        if (emailFeatureEnabled) {
+            user.setStatus(UserStatus.PENDING_VERIFICATION);
+            user.setEmailVerified(false);
+        } else {
+            user.setStatus(UserStatus.ACTIVE);
+            user.setEmailVerified(true);
+        }
 
         Set<RoleName> requestedRoles = request.roles() == null || request.roles().isEmpty()
                 ? Set.of(RoleName.STUDENT)
@@ -94,8 +104,7 @@ public class AuthService {
                 accessToken,
                 tokenProvider.getExpirationMs(),
                 refreshToken,
-                userMapper.toResponse(user)
-        );
+                userMapper.toResponse(user));
     }
 
     @Transactional
@@ -137,9 +146,10 @@ public class AuthService {
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         User user = userRepository.findByPasswordResetTokenAndDeletedFalse(request.token())
-            .orElseThrow(() -> new BusinessException("Invalid reset token"));
+                .orElseThrow(() -> new BusinessException("Invalid reset token"));
 
-        if (user.getPasswordResetTokenExpiry() == null || LocalDateTime.now().isAfter(user.getPasswordResetTokenExpiry())) {
+        if (user.getPasswordResetTokenExpiry() == null
+                || LocalDateTime.now().isAfter(user.getPasswordResetTokenExpiry())) {
             throw new BusinessException("Reset token has expired");
         }
 
