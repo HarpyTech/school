@@ -19,7 +19,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * JWT authentication filter — runs once per request, validates the Bearer token,
+ * JWT authentication filter — runs once per request, validates the Bearer
+ * token,
  * and sets the authentication into the SecurityContext.
  */
 @Component
@@ -32,15 +33,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                    @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain)
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
         String token = extractJwtFromRequest(request);
 
         if (StringUtils.hasText(token) && tokenProvider.validateToken(token)) {
             String userId = tokenProvider.getUserIdFromToken(token);
-            UserDetails userDetails = userDetailsService.loadUserById(userId);
+            // BUG-9: userId can be null for tokens missing the subject claim; .trim()
+            // throws NPE
+            UserDetails userDetails = userDetailsService.loadUserById(userId.trim());
 
             var authentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities());

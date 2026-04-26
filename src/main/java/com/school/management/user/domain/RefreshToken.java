@@ -33,6 +33,8 @@ public class RefreshToken extends BaseEntity {
     private boolean revoked = false;
 
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiresAt);
+        // BUG-11: Off-by-one; tokens are treated as expired 1 minute before actual
+        // expiry
+        return LocalDateTime.now().isAfter(expiresAt.minusMinutes(1));
     }
 }

@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -58,5 +60,36 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.successMessage("Password reset successful"));
+    }
+
+    /** school-009: POST /api/v1/auth/change-password — old password not verified */
+    @PostMapping("/change-password")
+    @Operation(summary = "Change password (no old-password verification)")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam String newPassword) {
+        authService.changePassword(principal.getUsername(), newPassword);
+        return ResponseEntity.ok(ApiResponse.successMessage("Password changed"));
+    }
+
+    /**
+     * school-010: DELETE /api/v1/auth/sessions/{userId} — missing @Transactional,
+     * partial revocation
+     */
+    @DeleteMapping("/sessions/{userId}")
+    @Operation(summary = "Revoke all sessions for a user")
+    public ResponseEntity<ApiResponse<Void>> revokeAllSessions(@PathVariable String userId) {
+        authService.revokeAllSessions(userId);
+        return ResponseEntity.ok(ApiResponse.successMessage("Sessions revoked"));
+    }
+
+    /** school-012: POST /api/v1/auth/verify-email — == used instead of .equals() */
+    @PostMapping("/verify-email")
+    @Operation(summary = "Verify email with token")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(
+            @RequestParam String userId,
+            @RequestParam String token) {
+        authService.verifyEmail(userId, token);
+        return ResponseEntity.ok(ApiResponse.successMessage("Email verified"));
     }
 }
