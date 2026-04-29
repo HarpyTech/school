@@ -54,12 +54,14 @@ jobs:
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/school_test
           SPRING_DATASOURCE_PASSWORD: testpassword
+          SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
 
       - name: Run Integration Tests
         run: mvn verify -B -DskipUnitTests
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/school_test
           SPRING_DATASOURCE_PASSWORD: testpassword
+          SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
 
       - name: Generate Test Report
         uses: dorny/test-reporter@v1

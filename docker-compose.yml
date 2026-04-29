@@ -1,5 +1,5 @@
 # School Management System - Docker Compose
-# Includes: MySQL, Elasticsearch, Prometheus, Grafana, Kibana
+# DB-only stack: Application + MySQL
 
 version: '3.8'
 
@@ -19,7 +19,7 @@ services:
       DB_PORT: 3306
       DB_NAME: school_management
       DB_PASSWORD: rootpassword
-      ELASTICSEARCH_URI: http://elasticsearch:9200
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
       JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     depends_on:
       mysql:
@@ -61,79 +61,8 @@ services:
               --character-set-server=utf8mb4
               --collation-server=utf8mb4_unicode_ci
 
-  # ─── Elasticsearch ─────────────────────────────────────────
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: school-elasticsearch
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    networks:
-      - school-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # ─── Kibana ────────────────────────────────────────────────
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: school-kibana
-    ports:
-      - "5601:5601"
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    networks:
-      - school-network
-
-  # ─── Prometheus ────────────────────────────────────────────
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: school-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.enable-lifecycle'
-    networks:
-      - school-network
-
-  # ─── Grafana ───────────────────────────────────────────────
-  grafana:
-    image: grafana/grafana:latest
-    container_name: school-grafana
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-    volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
-    networks:
-      - school-network
-
 volumes:
   mysql_data:
-  elasticsearch_data:
-  prometheus_data:
-  grafana_data:
 
 networks:
   school-network:
