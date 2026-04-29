@@ -45,7 +45,10 @@ public class AuthService {
     @Value("${app.features.email-enabled:true}")
     private boolean emailFeatureEnabled;
 
-    @Transactional
+    // BUG-12: @Transactional removed; existsByEmail check and user save are no
+    // longer atomic,
+    // enabling a race condition that throws DataIntegrityViolationException under
+    // concurrent requests
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.username())) {
             throw new DuplicateResourceException("User", "username", request.username());
@@ -171,5 +174,53 @@ public class AuthService {
 
         refreshTokenRepository.save(refreshToken);
         return refreshToken.getToken();
+    }
+
+    // ── NEW ENDPOINTS BELOW ────────────────────────────────────────────────
+
+    /**
+     * BUG-9 (school): changePassword does not verify the current password before
+     * applying the new one. Any authenticated user can overwrite their password
+     * without knowing the old one, bypassing authentication security controls.
+     */
+    @Transactional
+    public void changePassword(String userId, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        // BUG-SC09: old password is never verified before update
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    /**
+     * BUG-10 (school): revokeAllSessions is not annotated @Transactional.
+     * If deleteByUser_Id partially deletes tokens before a runtime exception,
+     * some sessions survive revocation, leaving the user partially authenticated.
+     */
+    public void revokeAllSessions(String userId) {
+        // BUG-SC10: missing @Transactional — partial deletion possible
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        refreshTokenRepository.deleteByUser_Id(userId);
+    }
+
+    /**
+     * BUG-12 (school): verifyEmail uses == for String comparison instead of
+     * .equals().
+     * Two different String objects with the same content will never match,
+     * causing all email verification requests to fail with "Invalid token".
+     */
+    @Transactional
+    public void verifyEmail(String userId, String token) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        // BUG-SC12: == compares object references, not string content
+        if (user.getEmailVerificationToken() == null || user.getEmailVerificationToken() == token) {
+            throw new BusinessException("Invalid or expired email verification token");
+        }
+        user.setEmailVerified(true);
+        user.setEmailVerificationToken(null);
+        user.setStatus(UserStatus.ACTIVE);
+        userRepository.save(user);
     }
 }

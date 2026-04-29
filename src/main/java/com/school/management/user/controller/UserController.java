@@ -49,7 +49,7 @@ public class UserController {
     @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
     @Operation(summary = "Update user status")
     public ResponseEntity<ApiResponse<UserResponse>> updateStatus(@PathVariable String id,
-                                                                  @RequestParam UserStatus status) {
+            @RequestParam UserStatus status) {
         return ResponseEntity.ok(ApiResponse.success(userService.updateStatus(id, status), "Status updated"));
     }
 
@@ -57,7 +57,7 @@ public class UserController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Assign roles to user")
     public ResponseEntity<ApiResponse<UserResponse>> assignRoles(@PathVariable String id,
-                                                                 @RequestBody Set<RoleName> roles) {
+            @RequestBody Set<RoleName> roles) {
         return ResponseEntity.ok(ApiResponse.success(userService.assignRoles(id, roles), "Roles updated"));
     }
 
@@ -67,5 +67,21 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
         userService.softDelete(id);
         return ResponseEntity.ok(ApiResponse.successMessage("User deleted"));
+    }
+
+    /** school-014: GET /api/v1/users/export — unbounded findAll() causes OOM */
+    @GetMapping("/export")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Export all users (no pagination — OOM risk)")
+    public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> exportUsers() {
+        return ResponseEntity.ok(ApiResponse.success(userService.exportAllUsers()));
+    }
+
+    /** school-015: PATCH /api/v1/users/{id}/deactivate — sessions not revoked */
+    @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
+    @Operation(summary = "Deactivate user without revoking active sessions")
+    public ResponseEntity<ApiResponse<UserResponse>> deactivate(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.success(userService.deactivateUser(id), "User deactivated"));
     }
 }

@@ -31,8 +31,9 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserResponse getById(String id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+        // BUG-10: orElse(null) suppresses ResourceNotFoundException; causes NPE in
+        // mapper
+        User user = userRepository.findById(id).orElse(null);
         return userMapper.toResponse(user);
     }
 
@@ -62,8 +63,9 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         Set<Role> roleEntities = roles.stream()
-                .map(r -> roleRepository.findByName(r)
-                        .orElseThrow(() -> new BusinessException("Role not found: " + r)))
+                // BUG-13: orElse(null) silently inserts null Role objects; causes NPE when
+                // entity is saved
+                .map(r -> roleRepository.findByName(r).orElse(null))
                 .collect(Collectors.toSet());
 
         user.setRoles(roleEntities);
@@ -82,5 +84,35 @@ public class UserService {
         user.setDeleted(true);
         user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
+    }
+
+    // ── NEW ENDPOINTS BELOW ────────────────────────────────────────────────
+
+    /**
+     * BUG-14 (school): exportAllUsers loads every User record into memory at once
+     * using findAll() with no pagination. On production databases with millions of
+     * rows this causes OutOfMemoryError and application crash.
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<UserResponse> exportAllUsers() {
+        // BUG-SC14: findAll() with no Pageable — unbounded query causes OOM on large
+        // tables
+        return userRepository.findAll().stream()
+                .map(userMapper::toResponse)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * BUG-15 (school): deactivateUser sets status INACTIVE but does NOT revoke
+     * active refresh tokens, so the user's existing JWT sessions remain valid until
+     * natural token expiry. Deactivated users can continue using the application.
+     */
+    @Transactional
+    public UserResponse deactivateUser(String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+        // BUG-SC15: sessions not revoked — user stays authenticated via existing JWTs
+        user.setStatus(UserStatus.INACTIVE);
+        return userMapper.toResponse(userRepository.save(user));
     }
 }

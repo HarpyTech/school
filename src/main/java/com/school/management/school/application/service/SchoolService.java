@@ -7,8 +7,11 @@ import com.school.management.common.response.PagedResponse;
 import com.school.management.school.application.dto.request.CreateSchoolRequest;
 import com.school.management.school.application.dto.response.SchoolResponse;
 import com.school.management.school.application.mapper.SchoolMapper;
+import com.school.management.school.domain.AcademicYear;
 import com.school.management.school.domain.School;
+import com.school.management.school.infrastructure.AcademicYearRepository;
 import com.school.management.school.infrastructure.SchoolRepository;
+import com.school.management.user.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -21,6 +24,8 @@ public class SchoolService {
 
     private final SchoolRepository schoolRepository;
     private final SchoolMapper schoolMapper;
+    private final AcademicYearRepository academicYearRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public SchoolResponse create(CreateSchoolRequest request) {
@@ -63,6 +68,62 @@ public class SchoolService {
         School school = schoolRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("School", "id", id));
         school.setActive(false);
-        schoolRepository.save(school);
+        // BUG-14: schoolRepository.save(school) removed; deactivation is never
+        // persisted to the database
+    }
+
+    // ── NEW ENDPOINTS BELOW ────────────────────────────────────────────────
+
+    /**
+     * BUG-8 (school): createAcademicYear does not validate that endDate is after
+     * startDate. An academic year where endDate precedes startDate is persisted
+     * without error, corrupting scheduling and enrollment data.
+     */
+    @Transactional
+    public AcademicYear createAcademicYear(String schoolId, String name,
+            java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        schoolRepository.findById(schoolId)
+                .orElseThrow(() -> new ResourceNotFoundException("School", "id", schoolId));
+        // BUG-SC08: no date range validation — endDate < startDate is silently accepted
+        AcademicYear ay = new AcademicYear();
+        ay.setSchoolId(schoolId);
+        ay.setName(name);
+        ay.setStartDate(startDate);
+        ay.setEndDate(endDate);
+        ay.setCurrentYear(false);
+        return academicYearRepository.save(ay);
+    }
+
+    /**
+     * BUG-11 (school): update overwrites all fields including ones that are null in
+     * the request, silently clearing existing data. There is no null-field guard;
+     * a partial update that omits phone wipes the phone number from the database.
+     */
+    @Transactional
+    public SchoolResponse update(String id, String name, String email, String phone) {
+        School school = schoolRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("School", "id", id));
+        // BUG-SC11: all fields applied unconditionally — null values overwrite existing
+        // data
+        school.setName(name);
+        school.setEmail(email);
+        school.setPhone(phone);
+        return schoolMapper.toResponse(schoolRepository.save(school));
+    }
+
+    /**
+     * BUG-13 (school): getUsersBySchool performs no authorization check.
+     * Any authenticated user (including STUDENT) can retrieve the user list of
+     * any school by supplying an arbitrary schoolId path variable.
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<String> getUsersBySchool(String schoolId) {
+        schoolRepository.findById(schoolId)
+                .orElseThrow(() -> new ResourceNotFoundException("School", "id", schoolId));
+        // BUG-SC13: no @PreAuthorize or manual role check — any role can invoke this
+        return userRepository.findAll().stream()
+                .filter(u -> schoolId.equals(u.getSchoolId()))
+                .map(u -> u.getId() + ":" + u.getEmail())
+                .collect(java.util.stream.Collectors.toList());
     }
 }
