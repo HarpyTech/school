@@ -1,0 +1,23 @@
+# Version control
+.git
+.gitignore
+
+# IDE / OS
+.idea
+*.iml
+.DS_Store
+*.swp
+
+# Maven build output (backend rebuilt inside Docker)
+target/
+
+# Docker files (not needed inside image)
+docker/
+docker-compose.yml
+
+# GitHub Actions (not needed inside image)
+.github/
+
+# Docs
+*.md
+LICENSE
