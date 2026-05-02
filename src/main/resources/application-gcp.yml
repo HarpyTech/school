@@ -1,13 +1,7 @@
 spring:
-  # ─── DataSource – GCP Cloud SQL (MySQL) ──────────────────────────────────────
-  # The Cloud SQL Java socket factory establishes a TLS-encrypted connection to
-  # the Cloud SQL instance directly through the Cloud SQL API.  No Cloud SQL
-  # Auth Proxy sidecar is required.  The Cloud Run service account must hold the
-  # "Cloud SQL Client" IAM role on the instance.
+  # ─── DataSource – Cloud SQL MySQL (TCP/IP) ───────────────────────────────────────
   datasource:
-    # The triple-slash (///) means "no host" – the socket factory resolves the
-    # Cloud SQL instance using the Cloud SQL API over TLS.
-    url: "jdbc:mysql:///${DB_NAME:school_management}?cloudSqlInstance=${CLOUD_SQL_INSTANCE}&socketFactory=com.google.cloud.sql.mysql.SocketFactory&useSSL=false&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=false"
+    url: "jdbc:mysql://${DB_HOST}/${DB_NAME:school_management}?useSSL=false&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true"
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
