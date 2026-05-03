@@ -1,5 +1,5 @@
 # School Management System - Docker Compose
-# DB-only stack: Application + MySQL
+# DB-only stack: Application + SQL Server (Azure SQL compatible)
 
 version: '3.8'
 
@@ -15,15 +15,18 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      DB_HOST: mysql
-      DB_PORT: 3306
+      DB_HOST: sqlserver
+      DB_PORT: 1433
       DB_NAME: school_management
-      DB_PASSWORD: rootpassword
+      DB_USER: sa
+      DB_PASSWORD: ${DB_PASSWORD:-YourStrong@2024!}
       SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
       JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     depends_on:
-      mysql:
+      sqlserver:
         condition: service_healthy
+      sqlserver-init:
+        condition: service_completed_successfully
     networks:
       - school-network
     # restart: unless-stopped
@@ -34,35 +37,46 @@ services:
       retries: 5
       start_period: 60s
 
-  # ─── MySQL ─────────────────────────────────────────────────
-  mysql:
-    image: mysql:8.0
-    container_name: school-mysql
+  # ─── SQL Server (Azure SQL compatible) ─────────────────────
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: school-sqlserver
     ports:
-      - "3307:3306"
+      - "1433:1433"
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: school_management
-      MYSQL_USER: school_user
-      MYSQL_PASSWORD: school_password
+      SA_PASSWORD: ${DB_PASSWORD:-YourStrong@2024!}
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - sqlserver_data:/var/opt/mssql
     networks:
       - school-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P "$$SA_PASSWORD" -Q "SELECT 1" -b -o /dev/null
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
-    command: --default-authentication-plugin=mysql_native_password
-              --character-set-server=utf8mb4
-              --collation-server=utf8mb4_unicode_ci
+
+  # ─── SQL Server DB init (creates schema database) ──────────
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      SA_PASSWORD: ${DB_PASSWORD:-YourStrong@2024!}
+    volumes:
+      - ./docker/sqlserver/init.sql:/init.sql:ro
+    command: >
+      /bin/bash -c "/opt/mssql-tools18/bin/sqlcmd -S sqlserver -U SA -P $$SA_PASSWORD -i /init.sql -No"
+    networks:
+      - school-network
+    restart: "no"
 
 volumes:
-  mysql_data:
+  sqlserver_data:
 
 networks:
   school-network:

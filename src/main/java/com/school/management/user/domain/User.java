@@ -24,7 +24,7 @@ import java.util.Set;
         @Index(name = "idx_user_school", columnList = "school_id"),
         @Index(name = "idx_user_status", columnList = "status")
 })
-@SQLRestriction("deleted = false")
+@SQLRestriction("deleted = 0")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -52,7 +52,7 @@ public class User extends BaseEntity {
     private String profilePicture;
 
     @Column(name = "school_id", length = 36)
-    private String schoolId;  // null for ADMIN users; set for all tenant-scoped users
+    private String schoolId; // null for ADMIN users; set for all tenant-scoped users
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
@@ -77,12 +77,8 @@ public class User extends BaseEntity {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
+    @ManyToMany(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
     public void addRole(Role role) {

@@ -80,11 +80,11 @@
         </dependency>
 
         <!-- =========================================== -->
-        <!-- MySQL Driver                                -->
+        <!-- SQL Server Driver (Azure SQL)               -->
         <!-- =========================================== -->
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
             <scope>runtime</scope>
         </dependency>
 
@@ -93,7 +93,7 @@
         <!-- =========================================== -->
         <dependency>
             <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-mysql</artifactId>
+            <artifactId>flyway-core</artifactId>
         </dependency>
 
         <!-- =========================================== -->

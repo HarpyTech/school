@@ -14,7 +14,7 @@ import java.time.LocalDate;
         @Index(name = "idx_ay_school_id", columnList = "school_id"),
         @Index(name = "idx_ay_name", columnList = "name")
 })
-@SQLRestriction("deleted = false")
+@SQLRestriction("deleted = 0")
 @Getter
 @Setter
 @NoArgsConstructor

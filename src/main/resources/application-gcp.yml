@@ -1,10 +1,10 @@
 spring:
-  # ─── DataSource – Cloud SQL MySQL (TCP/IP) ───────────────────────────────────────
+  # ─── DataSource – Azure SQL (SQL Server) ───────────────────────────────────────────────
   datasource:
-    url: "jdbc:mysql://${DB_HOST}/${DB_NAME:school_management}?useSSL=false&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true"
+    url: "jdbc:sqlserver://${DB_HOST}:${DB_PORT:1433};databaseName=${DB_NAME:school_management};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30"
     username: ${DB_USER}
     password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     hikari:
       # Cloud Run instances are ephemeral – keep the pool small to avoid
       # exhausting Cloud SQL max-connections when many revisions are running.
@@ -23,7 +23,7 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.SQLServerDialect
 
   # ─── Flyway ───────────────────────────────────────────────────────────────────
   flyway:

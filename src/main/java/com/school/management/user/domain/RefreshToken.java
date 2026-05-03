@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_refresh_token_user", columnList = "user_id"),
         @Index(name = "idx_refresh_token_expiry", columnList = "expires_at")
 })
-@SQLRestriction("deleted = false")
+@SQLRestriction("deleted = 0")
 @Getter
 @Setter
 public class RefreshToken extends BaseEntity {

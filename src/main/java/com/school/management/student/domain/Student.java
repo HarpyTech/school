@@ -19,7 +19,7 @@ import java.time.LocalDate;
         @Index(name = "idx_student_status", columnList = "status"),
         @Index(name = "idx_student_grade", columnList = "current_grade")
 })
-@SQLRestriction("deleted = false")
+@SQLRestriction("deleted = 0")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -68,7 +68,7 @@ public class Student extends TenantBaseEntity {
     })
     private Address address;
 
-    @Column(name = "documents_json", columnDefinition = "TEXT")
+    @Column(name = "documents_json", columnDefinition = "VARCHAR(MAX)")
     private String documentsJson;
 
     public String getFullName() {
