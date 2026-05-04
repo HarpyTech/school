@@ -78,17 +78,27 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # ── 4. Ensure Artifact Registry repository exists ────────────────────────
-      - name: Create Artifact Registry repository (idempotent)
+      # ── 4. Ensure Artifact Registry API is enabled and repository exists ────
+      - name: Ensure Artifact Registry repository exists
         run: |
-          gcloud artifacts repositories describe "${{ env.GCP_AR_REPOSITORY }}" \
-            --location="${{ env.GCP_REGION }}" \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-          || gcloud artifacts repositories create "${{ env.GCP_AR_REPOSITORY }}" \
-            --repository-format=docker \
-            --location="${{ env.GCP_REGION }}" \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --description="School Management System container images"
+          # Enable the API (idempotent — safe to run every time)
+          gcloud services enable artifactregistry.googleapis.com \
+            --project="${{ secrets.GCP_PROJECT_ID }}"
+
+          # Create the repository only if it does not already exist
+          if ! gcloud artifacts repositories describe "${{ env.GCP_AR_REPOSITORY }}" \
+              --location="${{ env.GCP_REGION }}" \
+              --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --quiet 2>/dev/null; then
+            gcloud artifacts repositories create "${{ env.GCP_AR_REPOSITORY }}" \
+              --repository-format=docker \
+              --location="${{ env.GCP_REGION }}" \
+              --project="${{ secrets.GCP_PROJECT_ID }}" \
+              --description="School Management System container images"
+            echo "Artifact Registry repository created: ${{ env.GCP_AR_REPOSITORY }}"
+          else
+            echo "Artifact Registry repository already exists: ${{ env.GCP_AR_REPOSITORY }}"
+          fi
 
       # ── 5. Configure Docker to push to Artifact Registry ────────────────────
       - name: Configure Docker for Artifact Registry
