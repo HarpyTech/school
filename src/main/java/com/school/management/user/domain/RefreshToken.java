@@ -1,35 +1,32 @@
 package com.school.management.user.domain;
 
 import com.school.management.common.entity.BaseEntity;
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.SQLRestriction;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "refresh_tokens", indexes = {
-        @Index(name = "idx_refresh_token_token", columnList = "token", unique = true),
-        @Index(name = "idx_refresh_token_user", columnList = "user_id"),
-        @Index(name = "idx_refresh_token_expiry", columnList = "expires_at")
-})
-@SQLRestriction("deleted = false")
+@Document(collection = "refresh_tokens")
 @Getter
 @Setter
 public class RefreshToken extends BaseEntity {
 
-    @Column(name = "token", length = 255, nullable = false, unique = true)
+    @Indexed(unique = true)
+    @Field("token")
     private String token;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Indexed
+    @Field("user_id")
+    private String userId;
 
-    @Column(name = "expires_at", nullable = false)
+    @Indexed
+    @Field("expires_at")
     private LocalDateTime expiresAt;
 
-    @Column(name = "revoked", nullable = false)
+    @Field("revoked")
     private boolean revoked = false;
 
     public boolean isExpired() {
