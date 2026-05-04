@@ -78,13 +78,12 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # ── 4. Ensure Artifact Registry API is enabled and repository exists ────
+      # ── 4. Ensure Artifact Registry repository exists ───────────────────────
+      # NOTE: The Artifact Registry API and Service Usage API must be enabled
+      # once manually in the GCP console before this workflow runs:
+      #   https://console.cloud.google.com/apis/library/artifactregistry.googleapis.com
       - name: Ensure Artifact Registry repository exists
         run: |
-          # Enable the API (idempotent — safe to run every time)
-          gcloud services enable artifactregistry.googleapis.com \
-            --project="${{ secrets.GCP_PROJECT_ID }}"
-
           # Create the repository only if it does not already exist
           if ! gcloud artifacts repositories describe "${{ env.GCP_AR_REPOSITORY }}" \
               --location="${{ env.GCP_REGION }}" \
