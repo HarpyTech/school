@@ -24,15 +24,12 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: testpassword
-          MYSQL_DATABASE: school_test
+      mongo:
+        image: mongo:7.0
         ports:
-          - 3306:3306
+          - 27017:27017
         options: >-
-          --health-cmd="mysqladmin ping"
+          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -54,8 +51,7 @@ jobs:
       - name: Run Unit Tests
         run: mvn test -B
         env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/school_test
-          SPRING_DATASOURCE_PASSWORD: testpassword
+          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/school_test
           SPRING_AUTOCONFIGURE_EXCLUDE: >-
             org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,
             org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,
@@ -133,21 +129,17 @@ jobs:
             --timeout=300
           env_vars: |
             SPRING_PROFILES_ACTIVE=gcp
-            DB_HOST=${{ secrets.DB_HOST }}
-            DB_NAME=${{ secrets.DB_NAME }}
-            DB_USER=${{ secrets.DB_USER }}
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             EMAIL_FEATURE_ENABLED=${{ env.EMAIL_FEATURE_ENABLED }}
             BOOTSTRAP_ADMIN_USERNAME=${{ secrets.BOOTSTRAP_ADMIN_USERNAME }}
             BOOTSTRAP_ADMIN_EMAIL=${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
-          # Sensitive credentials – sourced from GitHub Secrets and injected as
-          # Cloud Run environment variables at deploy time.
-          # For production hardening, store these in GCP Secret Manager and
+          # Non-sensitive vars are set above. Credentials (MONGODB_URI, JWT_SECRET,
+          # GOOGLE_CLIENT_SECRET, BOOTSTRAP_ADMIN_PASSWORD) are injected silently
+          # in the next step via gcloud to avoid appearing in the Actions log.
+          # For production hardening, migrate these to GCP Secret Manager and
           # reference them via the 'secrets:' parameter instead.
           env_vars_update_strategy: overwrite
-          # Note: DB_PASSWORD, JWT_SECRET, and GOOGLE_CLIENT_SECRET are passed
-          # separately below via a gcloud update to avoid logging in Actions output.
 
       # ── 9. Inject sensitive secrets via gcloud (not logged in Actions UI) ────
       - name: Inject sensitive environment variables
@@ -155,7 +147,7 @@ jobs:
           gcloud run services update "${{ env.CLOUD_RUN_SERVICE_NAME }}" \
             --region="${{ env.GCP_REGION }}" \
             --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --update-env-vars="DB_PASSWORD=${{ secrets.DB_PASSWORD }},JWT_SECRET=${{ secrets.JWT_SECRET }},GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }},BOOTSTRAP_ADMIN_PASSWORD=${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}"
+            --update-env-vars="MONGODB_URI=${{ secrets.MONGODB_URI }},JWT_SECRET=${{ secrets.JWT_SECRET }},GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }},BOOTSTRAP_ADMIN_PASSWORD=${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}"
 
       # ── 10. Print the service URL ────────────────────────────────────────────
       - name: Print deployed service URL
