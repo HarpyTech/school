@@ -121,6 +121,9 @@ jobs:
           cache-to: type=gha,mode=max
 
       # ── 8. Deploy to Cloud Run ───────────────────────────────────────────────
+      # All env vars (sensitive and non-sensitive) are provided in one step so
+      # the container starts with a complete environment. GitHub Actions
+      # automatically masks secret values in the workflow log.
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
@@ -130,10 +133,10 @@ jobs:
           flags: |
             --allow-unauthenticated
             --port=8080
-            --memory=1Gi
+            --memory=2Gi
             --cpu=1
             --min-instances=0
-            --max-instances=10
+            --max-instances=2
             --concurrency=80
             --timeout=300
           env_vars: |
@@ -143,22 +146,13 @@ jobs:
             EMAIL_FEATURE_ENABLED=${{ env.EMAIL_FEATURE_ENABLED }}
             BOOTSTRAP_ADMIN_USERNAME=${{ secrets.BOOTSTRAP_ADMIN_USERNAME }}
             BOOTSTRAP_ADMIN_EMAIL=${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
-          # Non-sensitive vars are set above. Credentials (MONGODB_URI, JWT_SECRET,
-          # GOOGLE_CLIENT_SECRET, BOOTSTRAP_ADMIN_PASSWORD) are injected silently
-          # in the next step via gcloud to avoid appearing in the Actions log.
-          # For production hardening, migrate these to GCP Secret Manager and
-          # reference them via the 'secrets:' parameter instead.
+            MONGODB_URI=${{ secrets.MONGODB_URI }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            BOOTSTRAP_ADMIN_PASSWORD=${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
           env_vars_update_strategy: overwrite
 
-      # ── 9. Inject sensitive secrets via gcloud (not logged in Actions UI) ────
-      - name: Inject sensitive environment variables
-        run: |
-          gcloud run services update "${{ env.CLOUD_RUN_SERVICE_NAME }}" \
-            --region="${{ env.GCP_REGION }}" \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --update-env-vars="MONGODB_URI=${{ secrets.MONGODB_URI }},JWT_SECRET=${{ secrets.JWT_SECRET }},GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }},BOOTSTRAP_ADMIN_PASSWORD=${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}"
-
-      # ── 10. Print the service URL ────────────────────────────────────────────
+      # ── 9. Print the service URL ─────────────────────────────────────────────
       - name: Print deployed service URL
         run: |
           gcloud run services describe "${{ env.CLOUD_RUN_SERVICE_NAME }}" \
