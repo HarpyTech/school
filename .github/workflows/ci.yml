@@ -17,16 +17,21 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: read
 
     services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: testpassword
-          MYSQL_DATABASE: school_test
+      mongo:
+        image: mongo:7.0
         ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Checkout code
@@ -52,15 +57,13 @@ jobs:
       - name: Run Unit Tests
         run: mvn test -B
         env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/school_test
-          SPRING_DATASOURCE_PASSWORD: testpassword
+          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/school_test
           SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
 
       - name: Run Integration Tests
         run: mvn verify -B -DskipUnitTests
         env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/school_test
-          SPRING_DATASOURCE_PASSWORD: testpassword
+          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/school_test
           SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
 
       - name: Generate Test Report
@@ -73,6 +76,8 @@ jobs:
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
+        if: success()
+        continue-on-error: true
         with:
           file: target/site/jacoco/jacoco.xml
 
