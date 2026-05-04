@@ -1,99 +1,86 @@
 package com.school.management.user.domain;
 
 import com.school.management.common.entity.BaseEntity;
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.SQLRestriction;
-import org.hibernate.type.SqlTypes;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Core User entity for authentication and identity.
+ * Core User document for authentication and identity.
  * Roles drive authorization; schoolId enables multi-tenancy.
  */
-@Entity
-@Table(name = "users", indexes = {
-        @Index(name = "idx_user_email", columnList = "email", unique = true),
-        @Index(name = "idx_user_username", columnList = "username", unique = true),
-        @Index(name = "idx_user_school", columnList = "school_id"),
-        @Index(name = "idx_user_status", columnList = "status")
-})
-@SQLRestriction("deleted = false")
+@Document(collection = "users")
 @Getter
 @Setter
 @NoArgsConstructor
 public class User extends BaseEntity {
 
-    @Column(name = "username", length = 100, nullable = false, unique = true)
+    @Indexed(unique = true)
+    @Field("username")
     private String username;
 
-    @Column(name = "email", length = 255, nullable = false, unique = true)
+    @Indexed(unique = true)
+    @Field("email")
     private String email;
 
-    @Column(name = "password", length = 100)
+    @Field("password")
     private String password;
 
-    @Column(name = "first_name", length = 100, nullable = false)
+    @Field("first_name")
     private String firstName;
 
-    @Column(name = "last_name", length = 100, nullable = false)
+    @Field("last_name")
     private String lastName;
 
-    @Column(name = "phone_number", length = 20)
+    @Field("phone_number")
     private String phoneNumber;
 
-    @Column(name = "profile_picture", length = 500)
+    @Field("profile_picture")
     private String profilePicture;
 
-    @Column(name = "school_id", length = 36)
-    private String schoolId;  // null for ADMIN users; set for all tenant-scoped users
+    @Field("school_id")
+    private String schoolId; // null for ADMIN users; set for all tenant-scoped users
 
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(name = "status", length = 30, nullable = false)
+    @Field("status")
     private UserStatus status = UserStatus.PENDING_VERIFICATION;
 
-    @Column(name = "email_verified", nullable = false)
+    @Field("email_verified")
     private boolean emailVerified = false;
 
-    @Column(name = "email_verification_token", length = 100)
+    @Field("email_verification_token")
     private String emailVerificationToken;
 
-    @Column(name = "email_verification_token_expiry")
+    @Field("email_verification_token_expiry")
     private LocalDateTime emailVerificationTokenExpiry;
 
-    @Column(name = "password_reset_token", length = 100)
+    @Field("password_reset_token")
     private String passwordResetToken;
 
-    @Column(name = "password_reset_token_expiry")
+    @Field("password_reset_token_expiry")
     private LocalDateTime passwordResetTokenExpiry;
 
-    @Column(name = "last_login_at")
+    @Field("last_login_at")
     private LocalDateTime lastLoginAt;
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
+    @Field("roles")
+    private Set<RoleName> roles = new HashSet<>();
 
-    public void addRole(Role role) {
-        this.roles.add(role);
+    public void addRole(RoleName roleName) {
+        this.roles.add(roleName);
     }
 
     public boolean hasRole(RoleName roleName) {
         if (roleName == null || roles == null || roles.isEmpty()) {
             return false;
         }
-        return roles.stream().anyMatch(role -> role != null && role.getName() == roleName);
+        return roles.contains(roleName);
     }
 
     public String getFullName() {

@@ -1,39 +1,34 @@
 package com.school.management.user.domain;
 
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.util.UUID;
 
 /**
- * Role entity — each role maps to a {@link RoleName} enum value.
+ * Role document — each role maps to a {@link RoleName} enum value.
  */
-@Entity
-@Table(name = "roles", indexes = {
-        @Index(name = "idx_role_name", columnList = "name", unique = true)
-})
+@Document(collection = "roles")
 @Getter
 @Setter
 @NoArgsConstructor
 public class Role {
 
     @Id
-    @Column(name = "id", length = 36, nullable = false, updatable = false)
     private String id;
 
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(name = "name", length = 50, nullable = false, unique = true)
+    @Indexed(unique = true)
+    @Field("name")
     private RoleName name;
 
-    @Column(name = "description", length = 255)
+    @Field("description")
     private String description;
 
-    @PrePersist
     protected void onCreate() {
         if (id == null) {
             id = UUID.randomUUID().toString();
@@ -42,5 +37,6 @@ public class Role {
 
     public Role(RoleName name) {
         this.name = name;
+        this.id = UUID.randomUUID().toString();
     }
 }

@@ -1,5 +1,5 @@
 # School Management System - Docker Compose
-# DB-only stack: Application + MySQL
+# DB-only stack: Application + MongoDB
 
 version: '3.8'
 
@@ -15,14 +15,11 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: school_management
-      DB_PASSWORD: rootpassword
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/school_management
       SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
       JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     depends_on:
-      mysql:
+      mongo:
         condition: service_healthy
     networks:
       - school-network
@@ -34,35 +31,28 @@ services:
       retries: 5
       start_period: 60s
 
-  # ─── MySQL ─────────────────────────────────────────────────
-  mysql:
-    image: mysql:8.0
-    container_name: school-mysql
+  # ─── MongoDB ───────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: school-mongo
     ports:
-      - "3307:3306"
+      - "27017:27017"
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: school_management
-      MYSQL_USER: school_user
-      MYSQL_PASSWORD: school_password
+      MONGO_INITDB_DATABASE: school_management
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mongo_data:/data/db
     networks:
       - school-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
-    command: --default-authentication-plugin=mysql_native_password
-              --character-set-server=utf8mb4
-              --collation-server=utf8mb4_unicode_ci
 
 volumes:
-  mysql_data:
+  mongo_data:
 
 networks:
   school-network:

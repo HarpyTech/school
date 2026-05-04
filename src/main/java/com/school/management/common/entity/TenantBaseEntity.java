@@ -1,9 +1,8 @@
 package com.school.management.common.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 /**
  * Base entity for all tenant-scoped (school-specific) entities.
@@ -11,9 +10,8 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@MappedSuperclass
 public abstract class TenantBaseEntity extends BaseEntity {
 
-    @Column(name = "school_id", length = 36, nullable = false)
+    @Field("school_id")
     private String schoolId;
 }

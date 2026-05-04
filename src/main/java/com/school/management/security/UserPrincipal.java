@@ -33,9 +33,9 @@ public class UserPrincipal implements UserDetails, OAuth2User {
     private final Map<String, Object> attributes;
 
     public UserPrincipal(String id, String username, String email, String password,
-                         String schoolId, UserStatus status, boolean emailVerified,
-                         Collection<? extends GrantedAuthority> authorities,
-                         Map<String, Object> attributes) {
+            String schoolId, UserStatus status, boolean emailVerified,
+            Collection<? extends GrantedAuthority> authorities,
+            Map<String, Object> attributes) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -49,7 +49,7 @@ public class UserPrincipal implements UserDetails, OAuth2User {
 
     public static UserPrincipal create(com.school.management.user.domain.User user) {
         List<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName().name()))
+                .map(role -> new SimpleGrantedAuthority(role.name()))
                 .collect(Collectors.toList());
 
         return new UserPrincipal(
@@ -61,13 +61,12 @@ public class UserPrincipal implements UserDetails, OAuth2User {
                 user.getStatus(),
                 user.isEmailVerified(),
                 authorities,
-                Map.of()
-        );
+                Map.of());
     }
 
     public static UserPrincipal create(com.school.management.user.domain.User user, Map<String, Object> attributes) {
         List<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName().name()))
+                .map(role -> new SimpleGrantedAuthority(role.name()))
                 .collect(Collectors.toList());
 
         return new UserPrincipal(
@@ -79,8 +78,7 @@ public class UserPrincipal implements UserDetails, OAuth2User {
                 user.getStatus(),
                 user.isEmailVerified(),
                 authorities,
-                attributes == null ? Map.of() : attributes
-        );
+                attributes == null ? Map.of() : attributes);
     }
 
     @Override
