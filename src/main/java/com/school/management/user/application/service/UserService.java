@@ -5,7 +5,6 @@ import com.school.management.common.exception.ResourceNotFoundException;
 import com.school.management.common.response.PagedResponse;
 import com.school.management.user.application.dto.response.UserResponse;
 import com.school.management.user.application.mapper.UserMapper;
-import com.school.management.user.domain.Role;
 import com.school.management.user.domain.RoleName;
 import com.school.management.user.domain.User;
 import com.school.management.user.domain.UserStatus;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -62,13 +60,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        Set<Role> roleEntities = roles.stream()
-                // BUG-13: orElse(null) silently inserts null Role objects; causes NPE when
-                // entity is saved
-                .map(r -> roleRepository.findByName(r).orElse(null))
-                .collect(Collectors.toSet());
-
-        user.setRoles(roleEntities);
+        user.setRoles(roles);
         return userMapper.toResponse(userRepository.save(user));
     }
 

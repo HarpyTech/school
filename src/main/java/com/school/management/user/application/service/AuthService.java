@@ -28,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -77,12 +76,7 @@ public class AuthService {
                 ? Set.of(RoleName.STUDENT)
                 : request.roles();
 
-        Set<Role> roles = requestedRoles.stream()
-                .map(roleName -> roleRepository.findByName(roleName)
-                        .orElseThrow(() -> new BusinessException("Role not found: " + roleName)))
-                .collect(Collectors.toSet());
-
-        user.setRoles(roles);
+        user.setRoles(requestedRoles);
         User saved = userRepository.save(user);
 
         return userMapper.toResponse(saved);
@@ -119,7 +113,9 @@ public class AuthService {
             throw new BusinessException("Refresh token is expired or revoked");
         }
 
-        UserPrincipal principal = UserPrincipal.create(refreshToken.getUser());
+        User user = userRepository.findById(refreshToken.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", refreshToken.getUserId()));
+        UserPrincipal principal = UserPrincipal.create(user);
         String accessToken = tokenProvider.generateAccessToken(principal);
 
         return new TokenResponse(accessToken, tokenProvider.getExpirationMs());
@@ -169,7 +165,7 @@ public class AuthService {
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setToken(UUID.randomUUID().toString());
-        refreshToken.setUser(user);
+        refreshToken.setUserId(user.getId());
         refreshToken.setExpiresAt(LocalDateTime.now().plusDays(7));
 
         refreshTokenRepository.save(refreshToken);
@@ -201,7 +197,7 @@ public class AuthService {
         // BUG-SC10: missing @Transactional — partial deletion possible
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-        refreshTokenRepository.deleteByUser_Id(userId);
+        refreshTokenRepository.deleteByUserId(userId);
     }
 
     /**
