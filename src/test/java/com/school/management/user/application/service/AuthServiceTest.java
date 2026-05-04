@@ -4,7 +4,6 @@ import com.school.management.common.exception.DuplicateResourceException;
 import com.school.management.security.jwt.JwtTokenProvider;
 import com.school.management.user.application.dto.request.RegisterRequest;
 import com.school.management.user.application.mapper.UserMapper;
-import com.school.management.user.domain.Role;
 import com.school.management.user.domain.RoleName;
 import com.school.management.user.infrastructure.RefreshTokenRepository;
 import com.school.management.user.infrastructure.RoleRepository;
@@ -18,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,13 +25,20 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock private UserRepository userRepository;
-    @Mock private RoleRepository roleRepository;
-    @Mock private RefreshTokenRepository refreshTokenRepository;
-    @Mock private UserMapper userMapper;
-    @Mock private PasswordEncoder passwordEncoder;
-    @Mock private AuthenticationManager authenticationManager;
-    @Mock private JwtTokenProvider tokenProvider;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private RoleRepository roleRepository;
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
+    @Mock
+    private UserMapper userMapper;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private AuthenticationManager authenticationManager;
+    @Mock
+    private JwtTokenProvider tokenProvider;
 
     @InjectMocks
     private AuthService authService;
@@ -50,8 +55,7 @@ class AuthServiceTest {
                 "Doe",
                 "1234567890",
                 "school-1",
-                Set.of(RoleName.STUDENT)
-        );
+                Set.of(RoleName.STUDENT));
     }
 
     @Test
@@ -62,11 +66,10 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_shouldThrowWhenRoleNotFound() {
+    void register_shouldThrowWhenEmailExists() {
         when(userRepository.existsByUsername("john")).thenReturn(false);
-        when(userRepository.existsByEmail("john@school.com")).thenReturn(false);
-        when(roleRepository.findByName(RoleName.STUDENT)).thenReturn(Optional.empty());
+        when(userRepository.existsByEmail("john@school.com")).thenReturn(true);
 
-        assertThrows(RuntimeException.class, () -> authService.register(request));
+        assertThrows(DuplicateResourceException.class, () -> authService.register(request));
     }
 }
