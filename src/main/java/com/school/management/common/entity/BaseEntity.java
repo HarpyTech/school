@@ -39,7 +39,7 @@ public abstract class BaseEntity implements Serializable {
     @Field("deleted")
     private boolean deleted = false;
 
-    protected void onPrePersist() {
+    public void onPrePersist() {
         if (this.id == null) {
             this.id = UUID.randomUUID().toString();
         }

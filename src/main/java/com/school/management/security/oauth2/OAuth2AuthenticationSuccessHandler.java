@@ -20,7 +20,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Redirects OAuth2 users to the frontend with their JWT tokens after successful login.
+ * Redirects OAuth2 users to the frontend with their JWT tokens after successful
+ * login.
  */
 @Component
 @RequiredArgsConstructor
@@ -32,8 +33,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
-                                        HttpServletResponse response,
-                                        Authentication authentication) throws IOException {
+            HttpServletResponse response,
+            Authentication authentication) throws IOException {
 
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         String accessToken = tokenProvider.generateAccessToken(userPrincipal);
@@ -55,7 +56,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setToken(UUID.randomUUID().toString());
-        refreshToken.setUser(user);
+        refreshToken.setUserId(user.getId());
         refreshToken.setExpiresAt(LocalDateTime.now().plusDays(7));
 
         refreshTokenRepository.save(refreshToken);

@@ -56,9 +56,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private User registerOAuth2User(OAuth2UserInfo userInfo) {
-        Role studentRole = roleRepository.findByName(RoleName.STUDENT)
-                .orElseThrow(() -> new BusinessException("Default role not configured"));
-
         String[] nameParts = userInfo.getName().split(" ", 2);
 
         User user = new User();
@@ -69,7 +66,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setProfilePicture(userInfo.getImageUrl());
         user.setEmailVerified(true);
         user.setStatus(UserStatus.ACTIVE);
-        user.setRoles(Set.of(studentRole));
+        user.setRoles(Set.of(RoleName.STUDENT));
         user.setPassword(""); // OAuth2 users have no local password
 
         return userRepository.save(user);
