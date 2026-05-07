@@ -5,7 +5,7 @@ spring:
   # ─── MongoDB ─────────────────────────────────────────────────
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/school_management}
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://rcaadmin:rcapassword123@localhost:27017/school_management?authSource=admin}
 
   # ─── Elasticsearch ──────────────────────────────────────────
   elasticsearch:
@@ -60,9 +60,9 @@ app:
     email-enabled: ${EMAIL_FEATURE_ENABLED:false}
   bootstrap:
     admin:
-      username: ${BOOTSTRAP_ADMIN_USERNAME:}
-      email: ${BOOTSTRAP_ADMIN_EMAIL:}
-      password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+      username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
+      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@school.com}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:admin123}
   jwt:
     secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     access-token-expiration-ms: 900000        # 15 minutes

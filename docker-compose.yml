@@ -1,5 +1,5 @@
 # School Management System - Docker Compose
-# DB-only stack: Application + MongoDB
+# Application only — uses a cloud-hosted MongoDB instance
 
 version: '3.8'
 
@@ -15,45 +15,15 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/school_management
+      SPRING_DATA_MONGODB_URI: mongodb://rcaadmin:rcapassword123@host.docker.internal:27017/school_management?authSource=admin
       SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
-      JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-    depends_on:
-      mongo:
-        condition: service_healthy
-    networks:
-      - school-network
-    # restart: unless-stopped
+      JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
-
-  # ─── MongoDB ───────────────────────────────────────────────
-  mongo:
-    image: mongo:7.0
-    container_name: school-mongo
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: school_management
-    volumes:
-      - mongo_data:/data/db
-    networks:
-      - school-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-
-volumes:
-  mongo_data:
-
-networks:
-  school-network:
-    driver: bridge
