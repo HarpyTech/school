@@ -75,16 +75,8 @@ public class SecurityConfig {
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(PUBLIC_URLS).permitAll()
-                                                .anyRequest().authenticated())
-                                .oauth2Login(oauth2 -> oauth2
-                                                .userInfoEndpoint(userInfo -> userInfo
-                                                                .userService(customOAuth2UserService))
-                                                .successHandler(oAuth2AuthenticationSuccessHandler))
-                                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                                                .anyRequest().permitAll());
 
                 return http.build();
         }
