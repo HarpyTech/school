@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: school-management
+  data:
+    mongodb:
+      # Use embedded MongoDB for tests or connection string
+      uri: mongodb://localhost:27017/school_management_test
+      auto-index-creation: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            # Test credentials - using dummy values for testing
+            client-id: test-client-id
+            client-secret: test-client-secret
+            redirect-uri: http://localhost:8080/login/oauth2/code/google
+            scope: openid,profile,email
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://www.googleapis.com/oauth2/v4/token
+            user-info-uri: https://www.googleapis.com/oauth2/v1/userinfo
+            user-name-attribute: sub
+  mail:
+    host: localhost
+    port: 1025
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+server:
+  port: 8080
+
+app:
+  jwtSecret: test-secret-key-for-jwt-testing-purposes-only-must-be-minimum-256-bits
+  jwtExpirationMs: 3600000  # 1 hour
+  jwtRefreshExpirationMs: 86400000  # 24 hours
+
+logging:
+  level:
+    root: INFO
+    com.school.management: DEBUG
+    org.springframework.security: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: false
