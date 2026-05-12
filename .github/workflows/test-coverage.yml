@@ -1,0 +1,90 @@
+name: Test Coverage Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/** ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  test-and-coverage:
+    name: Run Tests and Publish Coverage
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/school_test
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Install Maven if missing
+        run: |
+          if ! command -v mvn >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y maven
+          fi
+          mvn -version
+
+      - name: Run tests
+        run: mvn clean test -B
+
+      - name: Generate JaCoCo coverage report
+        run: mvn jacoco:report -B
+
+      - name: Publish JUnit test results
+        if: success() || failure()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Maven Test Results
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+
+      - name: Upload surefire reports artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: warn
+
+      - name: Upload JaCoCo HTML report artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-html-report
+          path: target/site/jacoco/
+          if-no-files-found: warn
+
+      - name: Upload JaCoCo XML artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-xml-report
+          path: target/site/jacoco/jacoco.xml
+          if-no-files-found: warn
