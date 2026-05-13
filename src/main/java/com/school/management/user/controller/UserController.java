@@ -12,7 +12,6 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
@@ -26,14 +25,12 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
     @Operation(summary = "Get user by ID")
     public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable String id) {
         return ResponseEntity.ok(ApiResponse.success(userService.getById(id)));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
     @Operation(summary = "Search users with pagination")
     public ResponseEntity<ApiResponse<PagedResponse<UserResponse>>> search(
             @RequestParam(required = false) String schoolId,
@@ -46,7 +43,6 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
     @Operation(summary = "Update user status")
     public ResponseEntity<ApiResponse<UserResponse>> updateStatus(@PathVariable String id,
             @RequestParam UserStatus status) {
@@ -54,7 +50,6 @@ public class UserController {
     }
 
     @PutMapping("/{id}/roles")
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Assign roles to user")
     public ResponseEntity<ApiResponse<UserResponse>> assignRoles(@PathVariable String id,
             @RequestBody Set<RoleName> roles) {
@@ -62,7 +57,6 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
     @Operation(summary = "Soft delete user")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
         userService.softDelete(id);
@@ -71,7 +65,6 @@ public class UserController {
 
     /** school-014: GET /api/v1/users/export — unbounded findAll() causes OOM */
     @GetMapping("/export")
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Export all users (no pagination — OOM risk)")
     public ResponseEntity<ApiResponse<java.util.List<UserResponse>>> exportUsers() {
         return ResponseEntity.ok(ApiResponse.success(userService.exportAllUsers()));
@@ -79,7 +72,6 @@ public class UserController {
 
     /** school-015: PATCH /api/v1/users/{id}/deactivate — sessions not revoked */
     @PatchMapping("/{id}/deactivate")
-    @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
     @Operation(summary = "Deactivate user without revoking active sessions")
     public ResponseEntity<ApiResponse<UserResponse>> deactivate(@PathVariable String id) {
         return ResponseEntity.ok(ApiResponse.success(userService.deactivateUser(id), "User deactivated"));
