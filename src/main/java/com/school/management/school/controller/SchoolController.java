@@ -14,7 +14,6 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -29,21 +28,18 @@ public class SchoolController {
     private final SchoolService schoolService;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Create school")
     public ResponseEntity<ApiResponse<SchoolResponse>> create(@Valid @RequestBody CreateSchoolRequest request) {
         return ResponseEntity.ok(ApiResponse.success(schoolService.create(request), "School created"));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
     @Operation(summary = "Get school by ID")
     public ResponseEntity<ApiResponse<SchoolResponse>> getById(@PathVariable String id) {
         return ResponseEntity.ok(ApiResponse.success(schoolService.getById(id)));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
     @Operation(summary = "List schools")
     public ResponseEntity<ApiResponse<PagedResponse<SchoolResponse>>> list(
             @RequestParam(defaultValue = "0") @Min(0) int page,
@@ -53,7 +49,6 @@ public class SchoolController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Deactivate school")
     public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable String id) {
         schoolService.deactivate(id);
@@ -65,7 +60,6 @@ public class SchoolController {
      * validation
      */
     @PostMapping("/{id}/academic-years")
-    @PreAuthorize("hasAnyAuthority('ADMIN','SCHOOL_ADMIN')")
     @Operation(summary = "Create academic year (no date validation)")
     public ResponseEntity<ApiResponse<AcademicYear>> createAcademicYear(
             @PathVariable String id,
@@ -81,7 +75,6 @@ public class SchoolController {
      * school-011: PUT /api/v1/schools/{id} — null fields overwrite existing data
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Update school (null fields overwrite existing data)")
     public ResponseEntity<ApiResponse<SchoolResponse>> update(
             @PathVariable String id,

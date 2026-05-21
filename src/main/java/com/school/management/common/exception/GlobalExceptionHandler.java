@@ -3,6 +3,7 @@ package com.school.management.common.exception;
 import com.school.management.common.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -41,7 +42,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             errors.put(fieldName, message);
         });
 
-        log.warn("Validation failed: {}", errors);
+        String incidentId = MDC.get("incidentId");
+        log.warn("Validation failed: {} incidentId={}", errors, incidentId);
         return ResponseEntity
                 .badRequest()
                 .body(ApiResponse.builder()
@@ -72,7 +74,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleResourceNotFound(ResourceNotFoundException ex) {
-        log.warn("Resource not found: {}", ex.getMessage());
+        String incidentId = MDC.get("incidentId");
+        log.warn("Resource not found: {} incidentId={}", ex.getMessage(), incidentId);
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(ex.getMessage()));
@@ -80,7 +83,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
-        log.warn("Business rule violation: {}", ex.getMessage());
+        String incidentId = MDC.get("incidentId");
+        log.warn("Business rule violation: {} incidentId={}", ex.getMessage(), incidentId);
         return ResponseEntity
                 .badRequest()
                 .body(ApiResponse.error(ex.getMessage()));
@@ -88,7 +92,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiResponse<Void>> handleDuplicate(DuplicateResourceException ex) {
-        log.warn("Duplicate resource: {}", ex.getMessage());
+        String incidentId = MDC.get("incidentId");
+        log.warn("Duplicate resource: {} incidentId={}", ex.getMessage(), incidentId);
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(ApiResponse.error(ex.getMessage()));
@@ -135,7 +140,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAll(Exception ex, WebRequest request) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        String incidentId = MDC.get("incidentId");
+        log.error("Unhandled exception: {} incidentId={}", ex.getMessage(), incidentId, ex);
         return ResponseEntity
                 .internalServerError()
                 .body(ApiResponse.error("An unexpected error occurred. Please try again later."));

@@ -2,9 +2,10 @@ name: School Management CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, feature/** ]
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch:
 
 env:
   JAVA_VERSION: '21'
@@ -21,6 +22,9 @@ jobs:
       checks: write
       pull-requests: write
       contents: read
+    env:
+      SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/school_test
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
 
     services:
       mongo:
@@ -51,20 +55,19 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
-      - name: Build with Maven
-        run: mvn clean compile -B
+      - name: Install Maven if missing
+        run: |
+          if ! command -v mvn >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y maven
+          fi
+          mvn -version
 
-      - name: Run Unit Tests
-        run: mvn test -B
-        env:
-          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/school_test
-          SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+      - name: Run tests
+        run: mvn clean test -B
 
-      - name: Run Integration Tests
-        run: mvn verify -B -DskipUnitTests
-        env:
-          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/school_test
-          SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration
+      - name: Generate JaCoCo coverage report
+        run: mvn jacoco:report -B
 
       - name: Generate Test Report
         uses: dorny/test-reporter@v1
@@ -73,6 +76,30 @@ jobs:
           name: Maven Tests
           path: target/surefire-reports/*.xml
           reporter: java-junit
+
+      - name: Upload surefire reports artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: warn
+
+      - name: Upload JaCoCo HTML report artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-html-report
+          path: target/site/jacoco/
+          if-no-files-found: warn
+
+      - name: Upload JaCoCo XML artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-xml-report
+          path: target/site/jacoco/jacoco.xml
+          if-no-files-found: warn
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
