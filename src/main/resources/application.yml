@@ -61,8 +61,14 @@ app:
   bootstrap:
     admin:
       username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
-      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@school.com}
-      password: ${BOOTSTRAP_ADMIN_PASSWORD:admin123}
+      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@school.edu}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:Admin@1234}
+    incident-fixtures-enabled: ${BOOTSTRAP_INCIDENT_FIXTURES_ENABLED:true}
+    fixture:
+      student:
+        username: ${BOOTSTRAP_FIXTURE_STUDENT_USERNAME:student.demo}
+        email: ${BOOTSTRAP_FIXTURE_STUDENT_EMAIL:student.demo@school.edu}
+        password: ${BOOTSTRAP_FIXTURE_STUDENT_PASSWORD:Student@1234}
   jwt:
     secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     access-token-expiration-ms: 900000        # 15 minutes
