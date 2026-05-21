@@ -1,0 +1,854 @@
+{
+    "info": {
+        "_postman_id": "school-incidents-v1",
+        "name": "School Management — Incident Triggers",
+        "description": "One request per incident in rca_eval_dataset.jsonl (school-001 … school-015).\nEach request sets X-Incident-ID so the IncidentIdFilter logs incidentId into MDC,\nenabling the RCA-Agent to match ground-truth evaluation metrics for every RCA run.\n\nPre-requisites:\n• Import MTech-Project.postman_environment.json and select it.\n• School service running on {{school_base}} (default http://localhost:8081).\n• The collection-level pre-request script logs in as admin@school.edu and caches the\n  JWT in the 'school_token' collection variable for the duration of the run.\n• school-013 needs a student token — set 'school_student_token' manually OR run the\n  school-004 register request first and log in as the new student to capture it.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "school_base",
+            "value": "http://localhost:8081",
+            "type": "string"
+        },
+        {
+            "key": "incidentId",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "school_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "school_refresh_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "school_student_token",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Collection-level pre-request: obtain an admin JWT if not already cached.",
+                    "var token = pm.collectionVariables.get('school_token');",
+                    "if (!token || token === '') {",
+                    "    var base = pm.collectionVariables.get('school_base') || 'http://localhost:8081';",
+                    "    pm.sendRequest({",
+                    "        url: base + '/api/v1/auth/login',",
+                    "        method: 'POST',",
+                    "        header: [{ key: 'Content-Type', value: 'application/json' }],",
+                    "        body: {",
+                    "            mode: 'raw',",
+                    "            raw: JSON.stringify({",
+                    "                usernameOrEmail: 'admin@school.edu',",
+                    "                password: 'Admin@1234'",
+                    "            })",
+                    "        }",
+                    "    }, function(err, res) {",
+                    "        if (!err && res.code === 200) {",
+                    "            var json = res.json();",
+                    "            if (json.data && json.data.accessToken) {",
+                    "                pm.collectionVariables.set('school_token', json.data.accessToken);",
+                    "                pm.collectionVariables.set('school_refresh_token', json.data.refreshToken || '');",
+                    "            }",
+                    "        }",
+                    "    });",
+                    "}"
+                ]
+            }
+        }
+    ],
+    "item": [
+        {
+            "name": "auth-service",
+            "description": "Incidents whose service_name is auth-service.",
+            "item": [
+                {
+                    "name": "school-001 | JwtAuthFilter NPE on malformed Bearer token",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-001');",
+                                    "// Deliberately set a malformed token that has no subject claim.",
+                                    "// The JwtAuthenticationFilter calls getUserId() on a null Claims object.",
+                                    "pm.collectionVariables.set('malformed_token', 'malformed_token_without_subject');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer malformed_token_without_subject"
+                            },
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/users/me",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "users",
+                                "me"
+                            ]
+                        },
+                        "description": "Triggers: JwtAuthenticationFilter.doFilterInternal calls claims.getSubject() on null — NPE.\nThe 'Authorization: Bearer malformed_token_without_subject' header contains a JWT that\ncannot be parsed so claims is null. IncidentIdFilter runs before security, so incidentId=school-001\nis always logged even when the request is rejected.\nClass: null-reference | Difficulty: easy | Split: train"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-003 | Refresh Token Reuse After Single-Use (Token Replay)",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-003');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refreshToken\": \"d3c9f1a2-7e4b-4c88-a1d2-3f9e8b7c6d5a\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/auth/refresh",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "refresh"
+                            ]
+                        },
+                        "description": "Triggers: refreshToken endpoint does not invalidate the old token after issuing a new one.\nSend this request twice with the same refreshToken to confirm both succeed.\nClass: token-replay | Difficulty: medium | Split: train"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-004 | Register — NPE When Email Already Exists",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-004');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"jane.doe\",\n  \"email\": \"jane.doe@school.edu\",\n  \"password\": \"Password@123\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/auth/register",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "description": "Triggers: register calls user.getEmail().toLowerCase() without checking existsByEmail first.\nSend ONCE to register. Send AGAIN (same email) to trigger the NPE on duplicate.\nClass: null-reference | Difficulty: medium | Split: train"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-007 | Refresh Token — Concurrent Reuse Race Condition",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-007');",
+                                    "// This incident is the concurrent variant of school-003.",
+                                    "// Use Postman Runner with 3 iterations all hitting the same refreshToken."
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refreshToken\": \"d3c9f1a2-7e4b-4c88-a1d2-3f9e8b7c6d5a\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/auth/refresh",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "refresh"
+                            ]
+                        },
+                        "description": "Triggers: Concurrent refresh requests with the same token pass the isValid() check before either marks it used.\nUse Postman Collection Runner with Iterations=3 and Delay=0 to reproduce the race.\nClass: race-condition | Difficulty: hard | Split: train"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-009 | change-password Without Old-Password Verification",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-009');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/auth/change-password?newPassword=h4ck3d",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "change-password"
+                            ],
+                            "query": [
+                                {
+                                    "key": "newPassword",
+                                    "value": "h4ck3d"
+                                }
+                            ]
+                        },
+                        "description": "Triggers: changePassword accepts only ?newPassword= query param with no verification of the old password.\nAny authenticated user can change any other user's password via this endpoint.\nClass: missing-validation | Difficulty: easy | Split: test"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-010 | Logout All Sessions for Non-Existent User",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-010');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/auth/sessions/usr-def456",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "sessions",
+                                "usr-def456"
+                            ]
+                        },
+                        "description": "Triggers: logoutAllSessions does not verify the userId exists before deleteAllByUserId,\nreturning a 200 success even when the user does not exist.\nClass: missing-validation | Difficulty: easy | Split: validation"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-012 | Email Verification Token Already Used",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-012');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/auth/verify-email?userId=usr-ghi789&token=a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "auth",
+                                "verify-email"
+                            ],
+                            "query": [
+                                {
+                                    "key": "userId",
+                                    "value": "usr-ghi789"
+                                },
+                                {
+                                    "key": "token",
+                                    "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                }
+                            ]
+                        },
+                        "description": "Triggers: verifyEmail does not mark the token as used — sending the same verification link twice both succeed.\nClass: token-replay | Difficulty: medium | Split: train"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "user-service",
+            "description": "Incidents whose service_name is user-service.",
+            "item": [
+                {
+                    "name": "school-002 | getUserById — NPE When User Not Found",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-002');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/users/usr-abc123",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "usr-abc123"
+                            ]
+                        },
+                        "description": "Triggers: UserService.getUserById calls findById(...).get() without checking isPresent().\n'usr-abc123' does not exist in the DB — Optional.get() throws NoSuchElementException.\nClass: null-reference | Difficulty: easy | Split: train"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-005 | assignRole — Silent-Fail on Non-Existent User",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-005');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"roles\": [\"TEACHER\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/users/usr-xyz789/roles",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "usr-xyz789",
+                                "roles"
+                            ]
+                        },
+                        "description": "Triggers: assignRole calls save() without checking that the user usr-xyz789 actually exists,\nsilently creating a ghost user document in MongoDB.\nClass: missing-validation | Difficulty: medium | Split: validation"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-014 | exportUsers — OOM on Unbounded Collection",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-014');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/users/export",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "export"
+                            ]
+                        },
+                        "description": "Triggers: exportUsers calls userRepository.findAll() with no pagination, loading the entire users\ncollection into heap memory. In production this causes OutOfMemoryError.\nClass: resource-leak | Difficulty: medium | Split: train"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-015 | deactivateUser — State Not Persisted",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-015');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/users/usr-jkl012/deactivate",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                "usr-jkl012",
+                                "deactivate"
+                            ]
+                        },
+                        "description": "Triggers: deactivateUser sets user.active=false on the in-memory object but calls\nfindById instead of save — the change is never persisted.\nClass: state-update-missing | Difficulty: medium | Split: test"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "school-management",
+            "description": "Incidents whose service_name is school-management.",
+            "item": [
+                {
+                    "name": "school-006 | deleteSchool — Cascade Not Handled (Orphaned Data)",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-006');",
+                                    "// Deleting sch-001 is destructive! Use a test school ID in staging.",
+                                    "// Confirm the school exists: GET {{school_base}}/api/v1/schools/sch-001"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/schools/sch-001",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "schools",
+                                "sch-001"
+                            ]
+                        },
+                        "description": "Triggers: deleteSchool deletes the School document but leaves orphaned AcademicYear,\nClass, and Enrollment documents referencing sch-001.\nClass: missing-cascade | Difficulty: hard | Split: train"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-008 | createAcademicYear — End Date Before Start Date",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-008');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/schools/sch-001/academic-years?name=2025-2026&startDate=2026-01-01&endDate=2025-06-30",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "schools",
+                                "sch-001",
+                                "academic-years"
+                            ],
+                            "query": [
+                                {
+                                    "key": "name",
+                                    "value": "2025-2026"
+                                },
+                                {
+                                    "key": "startDate",
+                                    "value": "2026-01-01"
+                                },
+                                {
+                                    "key": "endDate",
+                                    "value": "2025-06-30"
+                                }
+                            ]
+                        },
+                        "description": "Triggers: createAcademicYear saves the academic year without validating that endDate > startDate.\nstartDate=2026-01-01 is after endDate=2025-06-30 — invalid data is persisted without error.\nClass: missing-validation | Difficulty: easy | Split: train"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-011 | updateSchool — Partial Update NPE",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-011');"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/schools/sch-002?name=New+Name",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "schools",
+                                "sch-002"
+                            ],
+                            "query": [
+                                {
+                                    "key": "name",
+                                    "value": "New Name"
+                                }
+                            ]
+                        },
+                        "description": "Triggers: updateSchool calls getEmail().toLowerCase() on the request object without null-check.\nOnly ?name= is supplied — email is null — causing an NPE.\nClass: null-reference | Difficulty: medium | Split: test"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "school-013 | getSchoolUsers — Cross-School Data Leakage",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.collectionVariables.set('incidentId', 'school-013');",
+                                    "// school_student_token must belong to a user enrolled in sch-002 NOT sch-003.",
+                                    "// Set it via the environment file or by running school-004 + login as that student.",
+                                    "var studentToken = pm.collectionVariables.get('school_student_token');",
+                                    "if (!studentToken || studentToken === '') {",
+                                    "    console.warn('school-013: school_student_token is empty. Set it in the environment or run school-004 first.');",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{school_student_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-Incident-ID",
+                                "value": "{{incidentId}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{school_base}}/api/v1/schools/sch-003/users",
+                            "host": [
+                                "{{school_base}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "schools",
+                                "sch-003",
+                                "users"
+                            ]
+                        },
+                        "description": "Triggers: getSchoolUsers does not verify that the requesting user belongs to sch-003.\nA student from sch-002 can list all users of any school — cross-school data leakage.\nSet 'school_student_token' to a non-admin Bearer token before running.\nClass: authorization-missing | Difficulty: hard | Split: train"
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}
