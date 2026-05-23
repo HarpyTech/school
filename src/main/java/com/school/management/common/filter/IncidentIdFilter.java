@@ -2,7 +2,6 @@ package com.school.management.common.filter;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
@@ -34,24 +33,25 @@ public class IncidentIdFilter implements Filter {
             throws IOException, ServletException {
 
         HttpServletRequest httpRequest = (HttpServletRequest) request;
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String incidentId = httpRequest.getHeader(INCIDENT_ID_HEADER);
         if (incidentId == null || incidentId.isBlank()) {
             incidentId = httpRequest.getParameter(INCIDENT_ID_PARAM);
         }
 
-        if (incidentId != null && !incidentId.isBlank()) {
-            MDC.put(MDC_KEY, incidentId.trim());
-            log.debug("Incident ID extracted and added to MDC: {}", incidentId);
+        String resolvedIncidentId;
+        if (incidentId == null || incidentId.isBlank()) {
+            resolvedIncidentId = "-";
+        } else {
+            resolvedIncidentId = incidentId.trim();
         }
+        MDC.put(MDC_KEY, resolvedIncidentId);
+        log.debug("Incident ID added to MDC: {}", resolvedIncidentId);
 
         try {
             chain.doFilter(request, response);
         } finally {
-            if (incidentId != null) {
-                MDC.remove(MDC_KEY);
-            }
+            MDC.remove(MDC_KEY);
         }
     }
 }
