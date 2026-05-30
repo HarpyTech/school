@@ -23,13 +23,13 @@ public class ApiResponse<T> {
     private T data;
     private String correlationId;
 
-    @Builder.Default
-    private String timestamp = LocalDateTime.now().toString();
+    private String timestamp;
 
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()
                 .success(true)
                 .data(data)
+                .timestamp(LocalDateTime.now().toString())
                 .build();
     }
 
@@ -38,6 +38,7 @@ public class ApiResponse<T> {
                 .success(true)
                 .message(message)
                 .data(data)
+                .timestamp(LocalDateTime.now().toString())
                 .build();
     }
 
@@ -45,6 +46,7 @@ public class ApiResponse<T> {
         return ApiResponse.<T>builder()
                 .success(true)
                 .message(message)
+                .timestamp(LocalDateTime.now().toString())
                 .build();
     }
 
